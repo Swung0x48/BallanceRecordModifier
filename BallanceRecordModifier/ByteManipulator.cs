@@ -1,10 +1,11 @@
 using System;
+using System.Collections;
 using System.IO;
 using System.Threading.Tasks;
 
 namespace BallanceRecordModifier
 {
-    public class ByteManipulator
+    public class ByteManipulator: IEnumerable
     {
         public byte[] Encoded { get; private set; }
         public byte[] Decoded { get; private set; }
@@ -57,21 +58,9 @@ namespace BallanceRecordModifier
             await File.WriteAllBytesAsync(path, Encoded);
         }
 
-        public byte[] ByteArray
+        public IEnumerator GetEnumerator()
         {
-            set
-            {
-                if (value[0] == 'D' && value[1] == 'B') // Check if the array is already decoded.
-                {
-                    Decoded = value;
-                    Encoded = Encode(value);
-                }
-                else
-                {
-                    Encoded = value;
-                    Decoded = Decode(value);
-                }
-            }
+            return Encoded.GetEnumerator(); // TODO
         }
     }
 }
