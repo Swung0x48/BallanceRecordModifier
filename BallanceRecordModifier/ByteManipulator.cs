@@ -1,66 +1,70 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace BallanceRecordModifier
 {
     public class ByteManipulator: IEnumerable
     {
-        public byte[] Encoded { get; private set; }
-        public byte[] Decoded { get; private set; }
+        private byte[] Array { get; }
+        private int _index;
 
-        private ByteManipulator(byte[] encoded, byte[] decoded)
+        private ByteManipulator(byte[] array)
         {
-            Encoded = encoded;
-            Decoded = decoded;
+            Array = array;
+            _index = 0;
         }
 
-        internal static byte[] Decode(byte[]? arr)
+        public static ByteManipulator Create(byte[] encoded)
         {
-            if (arr is null) throw new NullReferenceException();
-            if (arr.Length == 0) throw new ArgumentNullException();
+            if (encoded is null) throw new NullReferenceException("Attempting to create ByteManipulator with null array.");
             
-            for (int index = 0; index < arr.Length; index++)
-            {
-                arr[index] = (byte) (arr[index] << 3 | arr[index] >> 5);
-                arr[index] = (byte) (-(arr[index] ^ 0xAF));
-            }
-
-            return arr;
-        }
-
-        internal static byte[] Encode(byte[]? arr)
-        {
-            if (arr is null) throw new NullReferenceException();
-            if (arr.Length == 0) throw new ArgumentNullException();
-
-            for (int index = 0; index < arr.Length; index++)
-            {
-                arr[index] = (byte) (-(arr[index]) ^ 0xAF);
-                arr[index] = (byte) (arr[index] << 5 | arr[index] >> 3);
-            }
-
-            return arr;
-        }
-
-        public static async Task<ByteManipulator> Create(string path)
-        {
-            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException();
-            var encoded = await File.ReadAllBytesAsync(path);
-            
-            return new ByteManipulator(encoded, Decode(encoded));
+            return new ByteManipulator(Decode(encoded));
         }
         
-        public async Task SaveToFile(string path)
+        internal static byte[] Decode(byte[]? array)
         {
-            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException();
-            await File.WriteAllBytesAsync(path, Encoded);
+            if (array is null) throw new NullReferenceException();
+            
+            for (int index = 0; index < array.Length; index++)
+            {
+                array[index] = (byte) (array[index] << 3 | array[index] >> 5);
+                array[index] = (byte) (-(array[index] ^ 0xAF));
+            }
+
+            return array;
+        }
+
+        internal static byte[] Encode(byte[]? array)
+        {
+            if (array is null) throw new NullReferenceException();
+
+            for (var index = 0; index < array.Length; index++)
+            {
+                array[index] = (byte) (-(array[index]) ^ 0xAF);
+                array[index] = (byte) (array[index] << 5 | array[index] >> 3);
+            }
+
+            return array;
         }
 
         public IEnumerator GetEnumerator()
         {
-            return Encoded.GetEnumerator(); // TODO
+            return Array.GetEnumerator(); // TODO
+        }
+
+        public string ReadString()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            for (; _index < Array.Length; _index++)
+            {
+                if (Array[_index] == 0) break;
+                stringBuilder.Append((char)Array[_index]);
+            }
+
+            return stringBuilder.ToString();
         }
     }
 }
