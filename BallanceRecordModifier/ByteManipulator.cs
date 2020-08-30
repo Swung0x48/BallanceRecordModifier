@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BallanceRecordModifier
 {
-    public class ByteManipulator: IEnumerable
+    public class ByteManipulator
     {
         private byte[] Array { get; }
         private int _index;
@@ -17,7 +17,7 @@ namespace BallanceRecordModifier
             _index = 0;
         }
 
-        public static ByteManipulator Create(byte[] encoded)
+        public static ByteManipulator Create(byte[]? encoded)
         {
             if (encoded is null) throw new NullReferenceException("Attempting to create ByteManipulator with null array.");
             
@@ -26,7 +26,8 @@ namespace BallanceRecordModifier
         
         internal static byte[] Decode(byte[]? array)
         {
-            if (array is null) throw new NullReferenceException();
+            if (array is null) throw new NullReferenceException("Array cannot be null.");
+            if (array.Length == 0) throw new ArgumentNullException("array", "Array cannot be empty.");
             
             for (int index = 0; index < array.Length; index++)
             {
@@ -40,6 +41,7 @@ namespace BallanceRecordModifier
         internal static byte[] Encode(byte[]? array)
         {
             if (array is null) throw new NullReferenceException();
+            if (array.Length == 0) throw new ArgumentNullException();
 
             for (var index = 0; index < array.Length; index++)
             {
@@ -50,14 +52,11 @@ namespace BallanceRecordModifier
             return array;
         }
 
-        public IEnumerator GetEnumerator()
-        {
-            return Array.GetEnumerator(); // TODO
-        }
-
         public string ReadString()
         {
             StringBuilder stringBuilder = new StringBuilder();
+            if (_index >= Array.Length) throw new InvalidOperationException("Byte array has been exhausted.");
+            
             for (; _index < Array.Length; _index++)
             {
                 if (Array[_index] == 0) break;
@@ -65,6 +64,24 @@ namespace BallanceRecordModifier
             }
 
             return stringBuilder.ToString();
+        }
+
+        public int ReadInt()
+        {
+            if (_index + 4 > Array.Length) throw new InvalidOperationException("The end of byte array has been reached.");
+
+            var ret = BitConverter.ToInt32(Array, _index);
+            _index += 4;
+            return ret;
+        }
+        
+        public float ReadFloat()
+        {
+            if (_index + 4 > Array.Length) throw new InvalidOperationException("The end of byte array has been reached.");
+            
+            var ret = BitConverter.ToSingle(Array, _index);
+            _index += 4;
+            return ret;
         }
     }
 }
