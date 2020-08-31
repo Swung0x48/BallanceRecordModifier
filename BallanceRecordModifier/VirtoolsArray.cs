@@ -113,7 +113,8 @@ namespace BallanceRecordModifier
                 }
             }
 
-            ret.AddRange(BitConverter.GetBytes(tmp.Count)); // Write chunk size.
+            _chunkSize = tmp.Count;
+            ret.AddRange(BitConverter.GetBytes(_chunkSize)); // Write chunk size.
             ret.AddRange(tmp); // Write the rest (headers and cells).
 
             return ret.ToArray();
