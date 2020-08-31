@@ -59,7 +59,12 @@ namespace BallanceRecordModifier
             
             for (; _index < Array.Length; _index++)
             {
-                if (Array[_index] == 0) break;
+                if (Array[_index] == 0)
+                {
+                    _index++;
+                    break;
+                }
+                
                 stringBuilder.Append((char)Array[_index]);
             }
 
