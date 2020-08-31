@@ -118,5 +118,9 @@ namespace BallanceRecordModifier
 
             return ret.ToArray();
         }
+
+        public static int ConvertKeyToIndex(string key) => keys.IndexOf(key);
+        public static string ConvertIndexToKey(int index) => keys[index];
+
     }
 }
