@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 
 namespace BallanceRecordModifier
 {
@@ -29,31 +29,23 @@ namespace BallanceRecordModifier
 
         #region Member variables
 
-        private string _sheetName;
+        public string SheetName { get; private set; }
         private int _chunkSize;
         private int _columnCount;
         private int _rowCount;
-        private List<Tuple<string, FieldType>> _headers;
-        private object[,] _cells; // Should be tuples
+        public List<Tuple<string, FieldType>> Headers { get; private set; }
+        public object[,] Cells { get; private set; }
 
         #endregion
 
-        #region Accessors
-
-        public string SheetName => _sheetName;
-        public List<Tuple<string, FieldType>> Headers => _headers;
-        public object[,] Cells => _cells;
-
-        #endregion
-        
         public VirtoolsArray(string sheetName, int chunkSize, int columnCount, int rowCount)
         {
-            _sheetName = sheetName;
+            SheetName = sheetName;
             _chunkSize = chunkSize;
             _columnCount = columnCount;
             _rowCount = rowCount;
-            _headers = new List<Tuple<string, FieldType>>(columnCount);
-            _cells = new object[columnCount, rowCount];
+            Headers = new List<Tuple<string, FieldType>>(columnCount);
+            Cells = new object[columnCount, rowCount];
         }
 
         public static VirtoolsArray Create(ByteManipulator bm)
@@ -74,7 +66,7 @@ namespace BallanceRecordModifier
                 var headerName = bm.ReadString();
                 var headerType = (FieldType)bm.ReadInt();
                 var header = new Tuple<string, FieldType>(headerName, headerType);
-                _headers.Add(header);
+                Headers.Add(header);
             }
         }
 
@@ -84,14 +76,47 @@ namespace BallanceRecordModifier
             {
                 for (int j = 0; j < _rowCount; j++)
                 {
-                    switch (_headers[i].Item2)
+                    switch (Headers[i].Item2)
                     {
-                        case FieldType.Int32: _cells[i, j] = bm.ReadInt(); break;
-                        case FieldType.Float: _cells[i, j] = bm.ReadFloat(); break;
-                        case FieldType.String: _cells[i, j] = bm.ReadString(); break;
+                        case FieldType.Int32: Cells[i, j] = bm.ReadInt(); break;
+                        case FieldType.Float: Cells[i, j] = bm.ReadFloat(); break;
+                        case FieldType.String: Cells[i, j] = bm.ReadString(); break;
                     }
                 }
             }
+        }
+
+        public byte[] ToByteArray()
+        {
+            var ret = new List<byte>(Encoding.ASCII.GetBytes(SheetName + '\0')); // Write sheet name.
+            
+            var tmp = new List<byte>();
+            tmp.AddRange(BitConverter.GetBytes(_columnCount));
+            tmp.AddRange(BitConverter.GetBytes(_rowCount));
+            tmp.AddRange(BitConverter.GetBytes(-1));    // Write separator.
+            
+            foreach (var item in Headers)
+            {
+                tmp.AddRange(Encoding.ASCII.GetBytes(item.Item1 + '\0')); // Write header name.
+                tmp.AddRange(BitConverter.GetBytes((int) item.Item2));       // Write header type.
+            }
+            for (int i = 0; i < _columnCount; i++)
+            {
+                for (int j = 0; j < _rowCount; j++)
+                {
+                    switch (Headers[i].Item2)
+                    {
+                        case FieldType.Int32: tmp.AddRange(BitConverter.GetBytes((int) Cells[i, j])); break;
+                        case FieldType.Float: tmp.AddRange(BitConverter.GetBytes((float) Cells[i, j])); break;
+                        case FieldType.String: tmp.AddRange(Encoding.ASCII.GetBytes((string) Cells[i, j] + '\0')); break;
+                    }
+                }
+            }
+
+            ret.AddRange(BitConverter.GetBytes(tmp.Count)); // Write chunk size.
+            ret.AddRange(tmp); // Write the rest (headers and cells).
+
+            return ret.ToArray();
         }
     }
 }
