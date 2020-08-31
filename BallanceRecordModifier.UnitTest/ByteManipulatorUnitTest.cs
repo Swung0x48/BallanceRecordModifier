@@ -151,7 +151,7 @@ namespace BallanceRecordModifier.UnitTest
         [Theory]
         [InlineData(new float[]{0, 0.1f, 0.2f, 0.3f}, new float[]{0, 0.1f, 0.2f, 0.3f})]
         [InlineData(new float[]{4000.0f, 3600.1f, 3200.2f}, new float[]{4000.0f, 3600.1f, 3200.2f})]
-        public void TestReadFloat(float[] samples, float[] expected)
+        public void TestReadFloat(float[] samples, float[] expected) 
         {
             List<byte> sampleBytes = new List<byte>();
             foreach (var t in samples)
@@ -189,6 +189,22 @@ namespace BallanceRecordModifier.UnitTest
         {
             var bm = ByteManipulator.Create(sample);
             Assert.Throws<InvalidOperationException>(() => bm.ReadFloat());
+        }
+
+        [Theory]
+        [InlineData(
+            "REJfSGlnaHNjb3JlX0x2MDEAxgAAAAIAAAAKAAAA/////w==", 
+            "DB_Highscore_Lv01",
+            new int[] {198, 2, 10, -1}
+            )]
+        public void TestReadMixed(string sample, string expectedString, int[] expectedInts)
+        {
+            var bm = ByteManipulator.Create(ByteManipulator.Encode(Convert.FromBase64String(sample)));
+            Assert.Equal(expectedString, bm.ReadString());
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.Equal(expectedInts[i], bm.ReadInt());
+            }
         }
     }
 }
