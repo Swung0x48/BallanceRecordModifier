@@ -8,7 +8,7 @@ namespace BallanceRecordModifier
 {
     public class ByteManipulator
     {
-        private byte[] Array { get; }
+        public byte[] Array { get; }
         private int _index;
 
         private ByteManipulator(byte[] array)
@@ -16,7 +16,7 @@ namespace BallanceRecordModifier
             Array = array;
             _index = 0;
         }
-
+        
         public static ByteManipulator Create(byte[]? encoded)
         {
             if (encoded is null) throw new NullReferenceException("Attempting to create ByteManipulator with null array.");
@@ -88,5 +88,7 @@ namespace BallanceRecordModifier
             _index += 4;
             return ret;
         }
+
+        public void Reset() => _index = 0;
     }
 }
