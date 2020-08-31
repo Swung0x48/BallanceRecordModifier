@@ -77,5 +77,13 @@ namespace BallanceRecordModifier.UnitTest
             va.PopulateCells(bm);
             Assert.Equal(sampleBytes, va.ToByteArray());
         }
+
+        [Theory]
+        [InlineData("1", 0)]
+        public void TestKeyConversions(string key, int index)
+        {
+            Assert.Equal(key, VirtoolsArray.ConvertIndexToKey(index));
+            Assert.Equal(index, VirtoolsArray.ConvertKeyToIndex(key));
+        }
     }
 }
