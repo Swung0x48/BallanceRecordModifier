@@ -82,13 +82,14 @@ namespace BallanceRecordModifier.UnitTest
             string[] read = {};
             ByteManipulator bm = ByteManipulator.Create(
                 ByteManipulator.Encode(
-                    Encoding.ASCII.GetBytes(sample)
+                    Encoding.ASCII.GetBytes(sample ?? "")
                 ));
-            
-            for (var i = 0; i < expected.Length; i++) 
-            { 
-                read.Append(bm.ReadString());
-            }
+
+            if (expected != null)
+                for (var i = 0; i < expected.Length; i++)
+                {
+                    read.Append(bm.ReadString());
+                }
         }
 
         [Fact]
@@ -205,6 +206,24 @@ namespace BallanceRecordModifier.UnitTest
             {
                 Assert.Equal(expectedInts[i], bm.ReadInt());
             }
+        }
+
+        [Theory]
+        [InlineData("Hello\0World", "HelloWorldHelloWorld")]
+        public void TestReset(string sample, string expected)
+        {
+            ByteManipulator bm = ByteManipulator.Create(
+                ByteManipulator.Encode(
+                    Encoding.ASCII.GetBytes(sample)
+                ));
+
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append(bm.ReadString());
+            stringBuilder.Append(bm.ReadString());
+            bm.Reset();
+            stringBuilder.Append(bm.ReadString());
+            stringBuilder.Append(bm.ReadString());
+            Assert.Equal(expected, stringBuilder.ToString());
         }
     }
 }
