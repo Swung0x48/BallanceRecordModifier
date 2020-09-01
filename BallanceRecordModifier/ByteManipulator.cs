@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace BallanceRecordModifier
 {
@@ -14,17 +15,17 @@ namespace BallanceRecordModifier
             _index = 0;
         }
         
-        public static ByteManipulator Create(byte[]? encoded)
+        public static async Task<ByteManipulator> Create(byte[]? encoded)
         {
             if (encoded is null) throw new NullReferenceException("Attempting to create ByteManipulator with null array.");
-            
-            return new ByteManipulator(Decode(encoded));
+
+            return await Task.Run(() => new ByteManipulator(Decode(encoded)));
         }
         
-        internal static byte[] Decode(byte[]? array)
+        public static byte[] Decode(byte[]? array)
         {
             if (array is null) throw new NullReferenceException("Array cannot be null.");
-            if (array.Length == 0) throw new ArgumentNullException("array", "Array cannot be empty.");
+            if (array.Length == 0) throw new ArgumentNullException(nameof(array), "Array cannot be empty.");
             
             for (int index = 0; index < array.Length; index++)
             {
@@ -35,7 +36,7 @@ namespace BallanceRecordModifier
             return array;
         }
 
-        internal static byte[] Encode(byte[]? array)
+        public static byte[] Encode(byte[]? array)
         {
             if (array is null) throw new NullReferenceException();
             if (array.Length == 0) throw new ArgumentNullException();
