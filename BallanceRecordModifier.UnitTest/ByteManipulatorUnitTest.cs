@@ -3,15 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace BallanceRecordModifier.UnitTest
 {
     public class ByteManipulatorUnitTest
     {
         [Fact]
-        public void TestCreateFromNullArray()
+        public async Task TestCreateFromNullArray()
         {
-            Assert.Throws<NullReferenceException>(() => ByteManipulator.Create(null));
+            await Assert.ThrowsAsync<NullReferenceException>(() => ByteManipulator.Create(null));
         }
 
         [Theory]
@@ -64,9 +65,9 @@ namespace BallanceRecordModifier.UnitTest
             new byte[] {(byte)'a', (byte)'b', (byte)'c', (byte)'d', (byte)'e'}, 
             "abcde"
         )]
-        public void TestReadString(byte[]? sample, string? expected)
+        public async Task TestReadString(byte[]? sample, string? expected)
         {
-            var bm = ByteManipulator.Create(ByteManipulator.Encode(sample));
+            var bm = await ByteManipulator.Create(ByteManipulator.Encode(sample));
             Assert.Equal(expected, bm.ReadString());
         }
 
@@ -77,10 +78,10 @@ namespace BallanceRecordModifier.UnitTest
         [InlineData(
             "Hello\0from\0the\0other\0side", 
             new string[] {"Hello", "from", "the", "other", "side"})]
-        public void TestMultipleReadString(string? sample, string[]? expected)
+        public async Task TestMultipleReadString(string? sample, string[]? expected)
         {
             string[] read = {};
-            ByteManipulator bm = ByteManipulator.Create(
+            ByteManipulator bm = await ByteManipulator.Create(
                 ByteManipulator.Encode(
                     Encoding.ASCII.GetBytes(sample ?? "")
                 ));
@@ -93,9 +94,9 @@ namespace BallanceRecordModifier.UnitTest
         }
 
         [Fact]
-        public void TestReadStringOnExhaustedBytes()
+        public async Task TestReadStringOnExhaustedBytes()
         {
-            var bm = ByteManipulator.Create(new byte[] {0, 1, 2, 3});
+            var bm = await ByteManipulator.Create(new byte[] {0, 1, 2, 3});
             bm.ReadInt();
             Assert.Throws<InvalidOperationException>(() => bm.ReadString());
         }
@@ -103,7 +104,7 @@ namespace BallanceRecordModifier.UnitTest
         [Theory]
         [InlineData(new int[]{0, 1, 2, 3}, new int[]{0, 1, 2, 3})]
         [InlineData(new int[]{4000, 3600, 3200}, new int[]{4000, 3600, 3200})]
-        public void TestReadInt(int[] samples, int[] expected)
+        public async Task TestReadInt(int[] samples, int[] expected)
         {
             List<byte> sampleBytes = new List<byte>();
             foreach (var t in samples)
@@ -116,7 +117,7 @@ namespace BallanceRecordModifier.UnitTest
             }
             Assert.Equal(samples.Length * 4, sampleBytes.Count);
             
-            ByteManipulator bm = ByteManipulator.Create(ByteManipulator.Encode(sampleBytes.ToArray()));
+            ByteManipulator bm = await ByteManipulator.Create(ByteManipulator.Encode(sampleBytes.ToArray()));
 
             foreach (var i in expected) 
             { 
@@ -130,10 +131,10 @@ namespace BallanceRecordModifier.UnitTest
             "oA8AABAOAACADAAA8AoAAGAJAADQBwAAQAYAALAEAAAgAwAAkAEAAA==",
             new int[] {4000, 3600, 3200, 2800, 2400, 2000, 1600, 1200, 800, 400}
         )]
-        public void TestReadIntFromRaw(string? sample, int[]? expected)
+        public async Task TestReadIntFromRaw(string? sample, int[]? expected)
         {
             var sampleBytes =  Convert.FromBase64String(sample);
-            var bm = ByteManipulator.Create(ByteManipulator.Encode(sampleBytes));
+            var bm = await ByteManipulator.Create(ByteManipulator.Encode(sampleBytes));
 
             foreach (var i in expected)
             {
@@ -143,16 +144,16 @@ namespace BallanceRecordModifier.UnitTest
 
         [Theory]
         [InlineData(new byte[] {11, 22})]
-        public void TestReadIntFromExhaustedByteManipulator(byte[] sample)
+        public async Task TestReadIntFromExhaustedByteManipulator(byte[] sample)
         {
-            var bm = ByteManipulator.Create(sample);
+            var bm = await ByteManipulator.Create(sample);
             Assert.Throws<InvalidOperationException>(() => bm.ReadInt());
         }
         
         [Theory]
         [InlineData(new float[]{0, 0.1f, 0.2f, 0.3f}, new float[]{0, 0.1f, 0.2f, 0.3f})]
         [InlineData(new float[]{4000.0f, 3600.1f, 3200.2f}, new float[]{4000.0f, 3600.1f, 3200.2f})]
-        public void TestReadFloat(float[] samples, float[] expected) 
+        public async Task TestReadFloat(float[] samples, float[] expected) 
         {
             List<byte> sampleBytes = new List<byte>();
             foreach (var t in samples)
@@ -165,7 +166,7 @@ namespace BallanceRecordModifier.UnitTest
             }
             Assert.Equal(samples.Length * 4, sampleBytes.Count);
             
-            ByteManipulator bm = ByteManipulator.Create(ByteManipulator.Encode(sampleBytes.ToArray()));
+            ByteManipulator bm = await ByteManipulator.Create(ByteManipulator.Encode(sampleBytes.ToArray()));
 
             foreach (var i in expected) 
             { 
@@ -176,19 +177,19 @@ namespace BallanceRecordModifier.UnitTest
         
         [Theory]
         [InlineData("ZmZmPw==", 0.9f)]
-        public void TestReadFloatFromRaw(string? sample, float? expected)
+        public async Task TestReadFloatFromRaw(string? sample, float? expected)
         {
             var sampleBytes =  Convert.FromBase64String(sample);
-            var bm = ByteManipulator.Create(ByteManipulator.Encode(sampleBytes));
+            var bm = await ByteManipulator.Create(ByteManipulator.Encode(sampleBytes));
         
             Assert.Equal(expected, bm.ReadFloat());
         }
         
         [Theory]
         [InlineData(new byte[] {11, 22})]
-        public void TestReadFloatFromExhaustedByteManipulator(byte[] sample)
+        public async Task TestReadFloatFromExhaustedByteManipulator(byte[] sample)
         {
-            var bm = ByteManipulator.Create(sample);
+            var bm = await ByteManipulator.Create(sample);
             Assert.Throws<InvalidOperationException>(() => bm.ReadFloat());
         }
 
@@ -198,9 +199,9 @@ namespace BallanceRecordModifier.UnitTest
             "DB_Highscore_Lv01",
             new int[] {198, 2, 10, -1}
             )]
-        public void TestReadMixed(string sample, string expectedString, int[] expectedInts)
+        public async Task TestReadMixed(string sample, string expectedString, int[] expectedInts)
         {
-            var bm = ByteManipulator.Create(ByteManipulator.Encode(Convert.FromBase64String(sample)));
+            var bm = await ByteManipulator.Create(ByteManipulator.Encode(Convert.FromBase64String(sample)));
             Assert.Equal(expectedString, bm.ReadString());
             for (int i = 0; i < 4; i++)
             {
@@ -210,9 +211,9 @@ namespace BallanceRecordModifier.UnitTest
 
         [Theory]
         [InlineData("Hello\0World", "HelloWorldHelloWorld")]
-        public void TestReset(string sample, string expected)
+        public async Task TestReset(string sample, string expected)
         {
-            ByteManipulator bm = ByteManipulator.Create(
+            ByteManipulator bm = await ByteManipulator.Create(
                 ByteManipulator.Encode(
                     Encoding.ASCII.GetBytes(sample)
                 ));
