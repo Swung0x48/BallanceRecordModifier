@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace BallanceRecordModifier
 {
@@ -48,76 +49,89 @@ namespace BallanceRecordModifier
             Cells = new object[columnCount, rowCount];
         }
 
-        public static VirtoolsArray Create(ByteManipulator bm)
+        public static async Task<VirtoolsArray> Create(ByteManipulator bm)
         {
-            var sheetName = bm.ReadString();
-            var chunkSize = bm.ReadInt();
-            var columnCount = bm.ReadInt();
-            var rowCount = bm.ReadInt();
-            bm.ReadInt(); // Skip EOF byte (-1 / 0x FFFF FFFF).
+            return await Task.Run(() =>
+            {
+                var sheetName = bm.ReadString();
+                var chunkSize = bm.ReadInt();
+                var columnCount = bm.ReadInt();
+                var rowCount = bm.ReadInt();
+                bm.ReadInt(); // Skip EOF byte (-1 / 0x FFFF FFFF).
 
-            return new VirtoolsArray(sheetName, chunkSize, columnCount, rowCount);
+                return new VirtoolsArray(sheetName, chunkSize, columnCount, rowCount);
+            });
         }
 
-        public void SetHeader(ByteManipulator bm)
+        public async Task SetHeader(ByteManipulator bm)
         {
-            for (int i = 0; i < _columnCount; i++)
+            await Task.Run(() =>
             {
-                var headerName = bm.ReadString();
-                var headerType = (FieldType)bm.ReadInt();
-                var header = new Tuple<string, FieldType>(headerName, headerType);
-                Headers.Add(header);
-            }
-        }
-
-        public void PopulateCells(ByteManipulator bm)
-        {
-            for (int i = 0; i < _columnCount; i++)
-            {
-                for (int j = 0; j < _rowCount; j++)
+                for (int i = 0; i < _columnCount; i++)
                 {
-                    switch (Headers[i].Item2)
+                    var headerName = bm.ReadString();
+                    var headerType = (FieldType)bm.ReadInt();
+                    var header = new Tuple<string, FieldType>(headerName, headerType);
+                    Headers.Add(header);
+                }
+            });
+            
+        }
+
+        public async Task PopulateCells(ByteManipulator bm)
+        {
+            await Task.Run(() =>
+            {
+                for (int i = 0; i < _columnCount; i++)
+                {
+                    for (int j = 0; j < _rowCount; j++)
                     {
-                        case FieldType.Int32: Cells[i, j] = bm.ReadInt(); break;
-                        case FieldType.Float: Cells[i, j] = bm.ReadFloat(); break;
-                        case FieldType.String: Cells[i, j] = bm.ReadString(); break;
+                        switch (Headers[i].Item2)
+                        {
+                            case FieldType.Int32: Cells[i, j] = bm.ReadInt(); break;
+                            case FieldType.Float: Cells[i, j] = bm.ReadFloat(); break;
+                            case FieldType.String: Cells[i, j] = bm.ReadString(); break;
+                        }
                     }
                 }
-            }
+            });
         }
 
-        public byte[] ToByteArray()
+        public async Task<byte[]> ToByteArray()
         {
-            var ret = new List<byte>(Encoding.ASCII.GetBytes(SheetName + '\0')); // Write sheet name.
-            
-            var tmp = new List<byte>();
-            tmp.AddRange(BitConverter.GetBytes(_columnCount));
-            tmp.AddRange(BitConverter.GetBytes(_rowCount));
-            tmp.AddRange(BitConverter.GetBytes(-1));    // Write separator.
-            
-            foreach (var item in Headers)
+            return await Task.Run(() =>
             {
-                tmp.AddRange(Encoding.ASCII.GetBytes(item.Item1 + '\0')); // Write header name.
-                tmp.AddRange(BitConverter.GetBytes((int) item.Item2));       // Write header type.
-            }
-            for (int i = 0; i < _columnCount; i++)
-            {
-                for (int j = 0; j < _rowCount; j++)
+                var ret = new List<byte>(Encoding.ASCII.GetBytes(SheetName + '\0')); // Write sheet name.
+            
+                var tmp = new List<byte>();
+                tmp.AddRange(BitConverter.GetBytes(_columnCount));
+                tmp.AddRange(BitConverter.GetBytes(_rowCount));
+                tmp.AddRange(BitConverter.GetBytes(-1));    // Write separator.
+            
+                foreach (var item in Headers)
                 {
-                    switch (Headers[i].Item2)
+                    tmp.AddRange(Encoding.ASCII.GetBytes(item.Item1 + '\0')); // Write header name.
+                    tmp.AddRange(BitConverter.GetBytes((int) item.Item2));       // Write header type.
+                }
+                for (int i = 0; i < _columnCount; i++)
+                {
+                    for (int j = 0; j < _rowCount; j++)
                     {
-                        case FieldType.Int32: tmp.AddRange(BitConverter.GetBytes((int) Cells[i, j])); break;
-                        case FieldType.Float: tmp.AddRange(BitConverter.GetBytes((float) Cells[i, j])); break;
-                        case FieldType.String: tmp.AddRange(Encoding.ASCII.GetBytes((string) Cells[i, j] + '\0')); break;
+                        switch (Headers[i].Item2)
+                        {
+                            case FieldType.Int32: tmp.AddRange(BitConverter.GetBytes((int) Cells[i, j])); break;
+                            case FieldType.Float: tmp.AddRange(BitConverter.GetBytes((float) Cells[i, j])); break;
+                            case FieldType.String: tmp.AddRange(Encoding.ASCII.GetBytes((string) Cells[i, j] + '\0')); break;
+                        }
                     }
                 }
-            }
 
-            _chunkSize = tmp.Count;
-            ret.AddRange(BitConverter.GetBytes(_chunkSize)); // Write chunk size.
-            ret.AddRange(tmp); // Write the rest (headers and cells).
+                _chunkSize = tmp.Count;
+                ret.AddRange(BitConverter.GetBytes(_chunkSize)); // Write chunk size.
+                ret.AddRange(tmp); // Write the rest (headers and cells).
 
-            return ret.ToArray();
+                return ret.ToArray();
+            });
         }
 
         public static int ConvertKeyToIndex(string key) => keys.IndexOf(key);
