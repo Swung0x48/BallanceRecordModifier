@@ -33,6 +33,12 @@ namespace BallanceRecordModifier
             _rawStream = rawStream;
         }
 
+        public TdbStream(byte[]? chunk = null)
+        {
+            _rawStream = chunk is null ? 
+                new MemoryStream() : new MemoryStream(chunk!);
+        }
+
         public override void Flush()
             => _rawStream.Flush();
 
@@ -138,7 +144,6 @@ namespace BallanceRecordModifier
         {
             var bytes = new byte[1];
             Read(bytes, 0, 1);
-            bytes[0] = Decode(bytes[0]);
             return bytes[0];
         }
 
