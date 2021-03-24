@@ -20,12 +20,17 @@ namespace BallanceRecordModifier
         public override string ReadString()
         {
             StringBuilder sb = new ();
-            var ch = base.ReadChar();
-            while (ch != 0)
+
+            try
             {
-                sb.Append(ch);
-                ch = base.ReadChar();
+                var ch = base.ReadChar();
+                while (ch != 0)
+                {
+                    sb.Append(ch);
+                    ch = base.ReadChar();
+                }
             }
+            catch (EndOfStreamException) {}
 
             return sb.ToString();
         }

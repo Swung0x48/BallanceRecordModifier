@@ -1,20 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace BallanceRecordModifier
 {
+    //[MemoryDiagnoser]
     class Program
     {
+        //[Benchmark]
         static async Task Main(string[] args)
         {
-            var sw = new Stopwatch();
-            sw.Start();
-            var initMem = GC.GetTotalMemory(false);
-            var arr = await File.ReadAllBytesAsync("Database.tdb");
+            /*var arr = await File.ReadAllBytesAsync("Database.tdb");
             var bm = await ByteManipulator.Create(arr);
             
             var vaList = new List<VirtoolsArray>();
@@ -37,27 +37,29 @@ namespace BallanceRecordModifier
             {
                 Console.WriteLine();
                 Console.WriteLine(e.Message);
-                Console.WriteLine($"Parse Completed. Elapsed {sw.ElapsedMilliseconds}ms.");
-                Console.WriteLine($"Memory usage {(GC.GetTotalMemory(false) - initMem) / 1024}KB.");
+                Console.WriteLine($"Parse Completed.");
             }
             
-            sw.Reset();
-            sw.Start();
-            // Utils.GoToUrl("https://www.baidu.com");
-
             for (var i = 0; i < vaList.Count; i++)
             {
-                using (var stream = new FileStream("Database.frankenstein.tdb", i == 0 ? FileMode.Truncate : FileMode.Append))
+                await using (var stream = new FileStream("Database.frankenstein.tdb", i == 0 ? FileMode.Truncate : FileMode.Append))
                 {
                     var byteArray = await vaList[i].ToByteArray();
-                    stream.Write(ByteManipulator.Encode(byteArray), 0, byteArray.Length);
+                    stream.Write(byteArray, 0, byteArray.Length);
                 }
                 Console.Write($"\r{i + 1}/{vaList.Count} arrays written.");
             }
             Console.WriteLine();
-            Console.WriteLine($"Write Completed. Elapsed {sw.ElapsedMilliseconds}ms.");
-            Console.WriteLine($"Memory usage {(GC.GetTotalMemory(false) - initMem) / 1024}KB.");
-            // await File.WriteAllBytesAsync("Database.new.tdb", bm.Array);
+            Console.WriteLine($"Write Completed.");*/
+            // BenchmarkRunner.Run<Benchmark>();
+            await using var fileStream = new FileStream("Database.tdb", FileMode.Open);
+            var tdbStream = new TdbStream(fileStream);
+            using var tdbReader = new TdbReader(tdbStream);
+            Console.WriteLine(tdbReader.ReadString());
+            var chunkSize = tdbReader.ReadInt32();
+            Console.WriteLine($"chunkSize: {chunkSize}");
+            byte[] buffer = new byte[chunkSize];
+            tdbReader.Read(buffer);
         }
     }
 }

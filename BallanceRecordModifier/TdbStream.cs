@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -27,7 +28,7 @@ namespace BallanceRecordModifier
 
             return a;
         }
-        
+
         public TdbStream(Stream rawStream)
         {
             _rawStream = rawStream;
@@ -35,8 +36,7 @@ namespace BallanceRecordModifier
 
         public TdbStream(byte[]? chunk = null)
         {
-            _rawStream = chunk is null ? 
-                new MemoryStream() : new MemoryStream(chunk!);
+            _rawStream = chunk is null ? new MemoryStream() : new MemoryStream(chunk!);
         }
 
         public override void Flush()
@@ -83,8 +83,10 @@ namespace BallanceRecordModifier
         public override int Read(Span<byte> buffer)
         {
             var ret = _rawStream.Read(buffer);
-            foreach (var t in buffer)
-                Decode(t);
+            for (var i = 0; i < ret; i++)
+            {
+                buffer[i] = Decode(buffer[i]);
+            }
 
             return ret;
         }
@@ -142,9 +144,8 @@ namespace BallanceRecordModifier
 
         public override int ReadByte()
         {
-            var bytes = new byte[1];
-            Read(bytes, 0, 1);
-            return bytes[0];
+            var ret = _rawStream.ReadByte();
+            return ret == -1 ? -1 : Decode((byte) ret);
         }
 
         public override int ReadTimeout
