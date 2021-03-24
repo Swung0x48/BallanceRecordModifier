@@ -58,13 +58,14 @@ namespace BallanceRecordModifier
             => _rawStream.SetLength(value);
 
         public override void Write(byte[] buffer, int offset, int count)
-        {
-            byte[] bytes = new byte[count];
-            for (var i = 0; i < count; i++)
-                bytes[i] = Encode(buffer[i]);
-            
-            _rawStream.Write(bytes, offset, count);
-        }
+            => _rawStream.Write(buffer, offset, count);
+        // {
+        //     byte[] bytes = new byte[count];
+        //     for (var i = 0; i < count; i++)
+        //         bytes[i] = Encode(buffer[i]);
+        //     
+        //     _rawStream.Write(bytes, offset, count);
+        // }
 
         public override bool CanRead => _rawStream.CanRead;
         public override bool CanSeek => _rawStream.CanSeek;
@@ -84,22 +85,20 @@ namespace BallanceRecordModifier
         {
             var ret = _rawStream.Read(buffer);
             for (var i = 0; i < ret; i++)
-            {
                 buffer[i] = Decode(buffer[i]);
-            }
-
+            
             return ret;
         }
 
-        public override void Write(ReadOnlySpan<byte> buffer)
-        {
-            byte[] bytes = new byte[buffer.Length];
-            buffer.CopyTo(bytes);
-            for (var i = 0; i < buffer.Length; i++)
-                bytes[i] = Encode(buffer[i]);
-            
-            _rawStream.Write(bytes);
-        }
+        public override void Write(ReadOnlySpan<byte> buffer) => _rawStream.Write(buffer);
+        // {
+        //     byte[] bytes = new byte[buffer.Length];
+        //     buffer.CopyTo(bytes);
+        //     for (var i = 0; i < buffer.Length; i++)
+        //         bytes[i] = Encode(buffer[i]);
+        //     
+        //     _rawStream.Write(bytes);
+        // }
 
         public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback,
             object? state)
@@ -118,21 +117,25 @@ namespace BallanceRecordModifier
         public override Task FlushAsync(CancellationToken cancellationToken) =>
             _rawStream.FlushAsync(cancellationToken);
 
-        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        public new Task<int> ReadAsync(byte[] buffer, int offset, int count)
+        {
+            return ReadAsync(buffer, offset, count, CancellationToken.None);
+        }
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             byte[] bytes = new byte[count]; 
-            var ret = await _rawStream.ReadAsync(bytes.AsMemory(offset, count), cancellationToken); 
+            var ret = _rawStream.ReadAsync(bytes.AsMemory(offset, count), cancellationToken); 
             for (var i = 0; i < count; i++) 
                 bytes[i] = Decode(bytes[i]);
                 
             bytes.CopyTo(buffer, 0);
-            return ret;
+            return ret.AsTask();
         }
 
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer,
             CancellationToken cancellationToken = new CancellationToken())
         {
-            var bytes = new Memory<byte>(); 
+            var bytes = new Memory<byte>(buffer.ToArray()); 
             var ret = await _rawStream.ReadAsync(bytes, cancellationToken); 
             for (var i = 0; i < buffer.Length; i++) 
                 bytes.Span[i] = Decode(bytes.Span[i]);
