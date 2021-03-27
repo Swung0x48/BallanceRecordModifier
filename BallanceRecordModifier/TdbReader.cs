@@ -9,17 +9,9 @@ namespace BallanceRecordModifier
         {
         }
 
-        public TdbReader(Stream input, Encoding encoding) : base(input, encoding)
-        {
-        }
-
-        public TdbReader(Stream input, Encoding encoding, bool leaveOpen) : base(input, encoding, leaveOpen)
-        {
-        }
-
         public override string ReadString()
         {
-            StringBuilder sb = new ();
+            var sb = new StringBuilder();
 
             try
             {

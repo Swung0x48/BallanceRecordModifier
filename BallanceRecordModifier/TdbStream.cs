@@ -69,7 +69,7 @@ namespace BallanceRecordModifier
 
         public override bool CanRead => _rawStream.CanRead;
         public override bool CanSeek => _rawStream.CanSeek;
-        public override bool CanWrite => _rawStream.CanTimeout;
+        public override bool CanWrite => _rawStream.CanWrite;
         public override long Length => _rawStream.Length;
 
         public override long Position
@@ -108,8 +108,8 @@ namespace BallanceRecordModifier
             object? state)
             => _rawStream.BeginRead(buffer, offset, count, callback, state);
 
-        public override void CopyTo(Stream destination, int bufferSize) => _rawStream.CopyTo(destination, bufferSize);
-
+        public override void CopyTo(Stream destination, int bufferSize) 
+            => _rawStream.CopyTo(destination, bufferSize);
         public override ValueTask DisposeAsync() => _rawStream.DisposeAsync();
         public override int EndRead(IAsyncResult asyncResult) => _rawStream.EndRead(asyncResult);
         public override void EndWrite(IAsyncResult asyncResult) => _rawStream.EndWrite(asyncResult);
@@ -158,23 +158,28 @@ namespace BallanceRecordModifier
         }
 
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            var bytes = new byte[count - offset];
-            buffer.CopyTo(bytes, offset);
-            for (var i = 0; i < count; i++)
-                bytes[i] = Encode(bytes[i]);
-            return _rawStream.WriteAsync(bytes, 0, count - offset, cancellationToken);
-        }
+            => _rawStream.WriteAsync(buffer, offset, count, cancellationToken);
+        // {
+        //     if (count == 0)
+        //         return Task.CompletedTask;
+        //         
+        //     var bytes = new byte[count - offset];
+        //     buffer[offset..(offset + count - 1)].CopyTo(bytes, offset);
+        //     for (var i = 0; i < count; i++)
+        //         bytes[i] = Encode(bytes[i]);
+        //     return _rawStream.WriteAsync(bytes, 0, count - offset, cancellationToken);
+        // }
 
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer,
             CancellationToken cancellationToken = new CancellationToken())
-        {
-            var memory = new Memory<byte>(buffer.ToArray());
-            var span = memory.Span;
-            for (var i = 0; i < buffer.Length; i++)
-                span[i] = Encode(span[i]);
-            return _rawStream.WriteAsync(memory, cancellationToken);
-        }
+            => _rawStream.WriteAsync(buffer, cancellationToken);
+        // {
+        //     var memory = new Memory<byte>(buffer.ToArray());
+        //     var span = memory.Span;
+        //     for (var i = 0; i < buffer.Length; i++)
+        //         span[i] = Encode(span[i]);
+        //     return _rawStream.WriteAsync(memory, cancellationToken);
+        // }
 
         public override void WriteByte(byte value)
         {

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -92,7 +93,7 @@ namespace BallanceRecordModifier.UnitTest
         [Theory]
         [InlineData("6222C1E2 07C6E644 46C72486 C163A4EF 0C", "DB_Highscore_Lv01", 10)] // Encoded "DB_Highscore_Lv01" without trailing null character ('\0')
         [InlineData("8324AFE9 6286A606 846764F5", "Mr. Default", 10)] // Encoded "Mr. Default" with trailing null character
-        public async Task TestWrite(string encoded, string decoded, int times)
+        public void TestWrite(string encoded, string decoded, int times)
         {
             var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
             var decodedBytes = Encoding.ASCII.GetBytes(decoded);
@@ -113,6 +114,23 @@ namespace BallanceRecordModifier.UnitTest
                 tdbStream.Seek(-1 * randSize, SeekOrigin.Current);
                 tdbStream.Read(buffer, 0, randSize);
                 Assert.Equal(Convert.ToHexString(decodedBytes[..randSize]), Convert.ToHexString(buffer[..randSize]));
+            }
+        }
+
+        [Theory]
+        [InlineData("6222C1E2 07C6E644 46C72486 C163A4EF 0C", "DB_Highscore_Lv01", 10)] // Encoded "DB_Highscore_Lv01" without trailing null character ('\0')
+        [InlineData("8324AFE9 6286A606 846764F5", "Mr. Default", 10)] // Encoded "Mr. Default" with trailing null character
+        public async Task TestWriteAsync(string encoded, string decoded, int times)
+        {
+            var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
+            var decodedBytes = Encoding.ASCII.GetBytes(decoded);
+            var tdbStream = new TdbStream();
+            var buffer = new byte[decodedBytes.Length];
+            
+            for (var i = 0; i < times; i++)
+            {
+                var rand = new Random();
+                var randSize = rand.Next(encodedBytes.Length);
                 
                 await tdbStream.WriteAsync(encodedBytes, 0, randSize);
                 tdbStream.Seek(-1 * randSize, SeekOrigin.Current);
@@ -124,6 +142,46 @@ namespace BallanceRecordModifier.UnitTest
                 await tdbStream.ReadAsync(buffer, 0, randSize);
                 Assert.Equal(Convert.ToHexString(decodedBytes[..randSize]), Convert.ToHexString(buffer[..randSize]));
             }
+        }
+
+        [Theory]
+        [InlineData("6222C1E2 07C6E644 46C72486 C163A4EF 0C", "DB_Highscore_Lv01")] // Encoded "DB_Highscore_Lv01" without trailing null character ('\0')
+        [InlineData("8324AFE9 6286A606 846764F5", "Mr. Default")] // Encoded "Mr. Default" with trailing null character
+        public void TestWriteByte(string encoded, string decoded)
+        {
+            var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
+            var decodedBytes = Encoding.ASCII.GetBytes(decoded);
+
+            var tdbStream = new TdbStream(encodedBytes);
+            foreach (var t in decodedBytes)
+            {
+                Assert.Equal(t, tdbStream.ReadByte());
+            }
+        }
+
+        [Theory]
+        [InlineData("6222C1E2 07C6E644 46C72486 C163A4EF 0C",
+            "DB_Highscore_Lv01")] // Encoded "DB_Highscore_Lv01" without trailing null character ('\0')
+        [InlineData("8324AFE9 6286A606 846764F5", "Mr. Default")] // Encoded "Mr. Default" with trailing null character
+        public async Task TestCopyTo(string encoded, string decoded)
+        {
+            var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
+            var decodedBytes = Encoding.ASCII.GetBytes(decoded);
+
+            var tdbStream = new TdbStream(encodedBytes);
+            tdbStream.ReadByte();
+            
+            var copiedStream = new TdbStream();
+            // copiedStream.WriteByte(1);
+            tdbStream.CopyTo(copiedStream);
+            copiedStream.Seek(0, SeekOrigin.Begin);
+            Assert.Equal(decodedBytes[1], copiedStream.ReadByte());
+
+            copiedStream.Seek(0, SeekOrigin.Begin);
+            var asyncCopiedStream = new TdbStream();
+            await copiedStream.CopyToAsync(asyncCopiedStream);
+            asyncCopiedStream.Seek(0, SeekOrigin.Begin);
+            Assert.Equal(decodedBytes[1], asyncCopiedStream.ReadByte());
         }
     }
 }
