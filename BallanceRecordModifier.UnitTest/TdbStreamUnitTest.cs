@@ -77,6 +77,7 @@ namespace BallanceRecordModifier.UnitTest
 
                 var buffer = new byte[randSize];
 
+                tdbStream.ReadAsEncoded = false;
                 tdbStream.Seek(0, SeekOrigin.Begin);
                 await tdbStream.ReadAsync(buffer, 0, randSize);
                 Assert.Equal(decodedBytes[..randSize], buffer);
@@ -88,6 +89,19 @@ namespace BallanceRecordModifier.UnitTest
                 tdbStream.Seek(0, SeekOrigin.Begin);
                 await tdbStream.ReadAsync(buffer.AsMemory(0, randSize));
                 Assert.Equal(decodedBytes[..randSize], buffer);
+
+                tdbStream.ReadAsEncoded = true;
+                tdbStream.Seek(0, SeekOrigin.Begin);
+                await tdbStream.ReadAsync(buffer, 0, randSize);
+                Assert.Equal(encodedBytes[..randSize], buffer);
+
+                tdbStream.Seek(0, SeekOrigin.Begin);
+                tdbStream.Read(buffer, 0, randSize);
+                Assert.Equal(encodedBytes[..randSize], buffer);
+
+                tdbStream.Seek(0, SeekOrigin.Begin);
+                await tdbStream.ReadAsync(buffer.AsMemory(0, randSize));
+                Assert.Equal(encodedBytes[..randSize], buffer);
             }
         }
 
@@ -105,14 +119,26 @@ namespace BallanceRecordModifier.UnitTest
             {
                 var rand = new Random();
                 var randSize = rand.Next(encodedBytes.Length);
-                
+
+                tdbStream.WriteAsEncoded = true;
                 tdbStream.Write(encodedBytes);
-                tdbStream.Seek(-1 * encodedBytes.Length, SeekOrigin.Current);
+                tdbStream.Seek(-encodedBytes.Length, SeekOrigin.Current);
                 tdbStream.Read(buffer);
                 Assert.Equal(Convert.ToHexString(decodedBytes), Convert.ToHexString(buffer));
 
                 tdbStream.Write(encodedBytes, 0, randSize);
-                tdbStream.Seek(-1 * randSize, SeekOrigin.Current);
+                tdbStream.Seek(-randSize, SeekOrigin.Current);
+                tdbStream.Read(buffer, 0, randSize);
+                Assert.Equal(Convert.ToHexString(decodedBytes[..randSize]), Convert.ToHexString(buffer[..randSize]));
+                
+                tdbStream.WriteAsEncoded = false;
+                tdbStream.Write(decodedBytes);
+                tdbStream.Seek(-decodedBytes.Length, SeekOrigin.Current);
+                tdbStream.Read(buffer);
+                Assert.Equal(Convert.ToHexString(decodedBytes), Convert.ToHexString(buffer));
+                
+                tdbStream.Write(decodedBytes, 0, randSize);
+                tdbStream.Seek(-randSize, SeekOrigin.Current);
                 tdbStream.Read(buffer, 0, randSize);
                 Assert.Equal(Convert.ToHexString(decodedBytes[..randSize]), Convert.ToHexString(buffer[..randSize]));
             }

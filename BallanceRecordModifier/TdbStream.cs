@@ -27,7 +27,7 @@ namespace BallanceRecordModifier
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte Encode(byte a)
         {
-            a = (byte) -(a ^ 0xAF);
+            a = (byte) (-a ^ 0xAF);
             a = (byte) (a << 5 | a >> 3);
 
             return a;
@@ -84,12 +84,11 @@ namespace BallanceRecordModifier
             }
 
             byte[] bytes = new byte[count];
-            for (var i = 0; i < count; i++)
+            for (var i = offset; i < offset + count; i++)
                 bytes[i] = _streamEncoded   // decoded param -> encoded stream
-                    ? Decode(buffer[i]) : Encode(buffer[i]);
+                    ? Encode(buffer[i]) : Decode(buffer[i]);
                 
             _rawStream.Write(bytes, offset, count);
-            
         }
 
         public override bool CanRead => _rawStream.CanRead;
@@ -131,7 +130,6 @@ namespace BallanceRecordModifier
 
             Debug.Assert(_streamEncoded != WriteAsEncoded);
             byte[] bytes = new byte[buffer.Length];
-            // buffer.CopyTo(bytes);
             for (var i = 0; i < buffer.Length; i++)
                 bytes[i] = _streamEncoded   // decoded param -> encoded stream
                     ? Encode(buffer[i]) : Decode(buffer[i]);

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using Xunit;
 
@@ -5,6 +6,13 @@ namespace BallanceRecordModifier.UnitTest
 {
     public class TdbWriterTest
     {
+        [Fact]
+        public void TestException()
+        {
+            var tdbStream = new TdbStream(false, true);
+            Assert.Throws<ArgumentException>(() => new TdbWriter(tdbStream));
+        }
+
         [Theory]
         [InlineData("DB_Highscore_Lv01")]
         [InlineData("Mr. Default")]
