@@ -53,7 +53,7 @@ namespace BallanceRecordModifier
             Console.WriteLine($"Write Completed.");*/
             // BenchmarkRunner.Run<Benchmark>();
             await using var fileStream = new FileStream("Database.tdb", FileMode.Open);
-            var tdbStream = new TdbStream(fileStream);
+            var tdbStream = new TdbStream(false, true, fileStream);
             using var tdbReader = new TdbReader(tdbStream);
             Console.WriteLine(tdbReader.ReadString());
             var chunkSize = tdbReader.ReadInt32();

@@ -12,7 +12,7 @@ namespace BallanceRecordModifier.UnitTest
         public void TestReadString(string encoded, string result)
         {
             var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
-            using var tdbStream = new TdbStream(encodedBytes);
+            using var tdbStream = new TdbStream(false, true, encodedBytes);
             using var tdbReader = new TdbReader(tdbStream);
             Assert.Equal(result, tdbReader.ReadString());
         }

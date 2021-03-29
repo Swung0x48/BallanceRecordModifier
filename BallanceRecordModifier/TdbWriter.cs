@@ -1,13 +1,22 @@
+using System;
 using System.IO;
-using System.Linq;
+using System.Text;
 
 namespace BallanceRecordModifier
 {
     public class TdbWriter : BinaryWriter
     {
+        public TdbWriter(TdbStream output) : base(output)
+        {
+            if (output.WriteAsEncoded)
+                throw new ArgumentException(
+                    "The TdbStream should set WriteAsEncoded to false before using this writer.");
+        }
+
         public override void Write(string value)
         {
-            Write((value + '\0').ToArray());
+            Write(Encoding.ASCII.GetBytes(value));
+            Write('\0');
         }
     }
 }

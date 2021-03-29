@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,10 +13,10 @@ namespace BallanceRecordModifier.UnitTest
         [Fact]
         public void TestEmpty()
         {
-            var tdbStream = new TdbStream();
+            var tdbStream = new TdbStream(false, true);
             Assert.Equal(0, tdbStream.Read(new byte[1]));
             Assert.Equal(0, tdbStream.Read(new byte[1], 0, 1));
-            tdbStream = new TdbStream(System.Array.Empty<byte>());
+            tdbStream = new TdbStream(false, true, System.Array.Empty<byte>());
             Assert.Equal(0, tdbStream.Read(new byte[1]));
             Assert.Equal(0, tdbStream.Read(new byte[1], 0, 1));
         }
@@ -27,7 +28,7 @@ namespace BallanceRecordModifier.UnitTest
         {
             var encodedBytes = Convert.FromHexString(encoded);
             
-            var tdbStream = new TdbStream(encodedBytes);
+            var tdbStream = new TdbStream(false, true, encodedBytes);
             var decodedBytes = new byte[encodedBytes.Length];
             tdbStream.Read(decodedBytes);
             Assert.Equal(Encoding.ASCII.GetBytes(decoded), decodedBytes);
@@ -40,7 +41,7 @@ namespace BallanceRecordModifier.UnitTest
         {
             var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
             
-            var tdbStream = new TdbStream(encodedBytes);
+            var tdbStream = new TdbStream(false, true, encodedBytes);
             Assert.Equal(decoded[0], tdbStream.ReadByte());
             
             tdbStream.Seek(-1, SeekOrigin.Current);
@@ -67,7 +68,7 @@ namespace BallanceRecordModifier.UnitTest
         {
             var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
             var decodedBytes = Encoding.ASCII.GetBytes(decoded);
-            var tdbStream = new TdbStream(encodedBytes);
+            var tdbStream = new TdbStream(false, true, encodedBytes);
             
             for (var i = 0; i < times; i++)
             {
@@ -97,7 +98,7 @@ namespace BallanceRecordModifier.UnitTest
         {
             var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
             var decodedBytes = Encoding.ASCII.GetBytes(decoded);
-            var tdbStream = new TdbStream();
+            var tdbStream = new TdbStream(false, true);
             var buffer = new byte[decodedBytes.Length];
             
             for (var i = 0; i < times; i++)
@@ -124,7 +125,7 @@ namespace BallanceRecordModifier.UnitTest
         {
             var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
             var decodedBytes = Encoding.ASCII.GetBytes(decoded);
-            var tdbStream = new TdbStream();
+            var tdbStream = new TdbStream(false, true);
             var buffer = new byte[decodedBytes.Length];
             
             for (var i = 0; i < times; i++)
@@ -152,11 +153,13 @@ namespace BallanceRecordModifier.UnitTest
             var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
             var decodedBytes = Encoding.ASCII.GetBytes(decoded);
 
-            var tdbStream = new TdbStream(encodedBytes);
+            var tdbStream = new TdbStream(false, true);
+            foreach (var t in encodedBytes)
+                tdbStream.WriteByte(t);
+            
+            tdbStream.Seek(0, SeekOrigin.Begin);
             foreach (var t in decodedBytes)
-            {
                 Assert.Equal(t, tdbStream.ReadByte());
-            }
         }
 
         [Theory]
@@ -168,17 +171,17 @@ namespace BallanceRecordModifier.UnitTest
             var encodedBytes = Convert.FromHexString(encoded.Replace(" ", ""));
             var decodedBytes = Encoding.ASCII.GetBytes(decoded);
 
-            var tdbStream = new TdbStream(encodedBytes);
+            var tdbStream = new TdbStream(false, true, encodedBytes);
             tdbStream.ReadByte();
             
-            var copiedStream = new TdbStream();
+            var copiedStream = new TdbStream(false, true);
             // copiedStream.WriteByte(1);
             tdbStream.CopyTo(copiedStream);
             copiedStream.Seek(0, SeekOrigin.Begin);
             Assert.Equal(decodedBytes[1], copiedStream.ReadByte());
 
             copiedStream.Seek(0, SeekOrigin.Begin);
-            var asyncCopiedStream = new TdbStream();
+            var asyncCopiedStream = new TdbStream(false, true);
             await copiedStream.CopyToAsync(asyncCopiedStream);
             asyncCopiedStream.Seek(0, SeekOrigin.Begin);
             Assert.Equal(decodedBytes[1], asyncCopiedStream.ReadByte());
