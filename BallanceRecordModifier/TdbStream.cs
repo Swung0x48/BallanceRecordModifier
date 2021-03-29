@@ -226,7 +226,7 @@ namespace BallanceRecordModifier
             Debug.Assert(_streamEncoded != WriteAsEncoded);
             var bytes = new byte[count];
             for (var i = offset; i < offset + count; i++)
-                bytes[i] = _streamEncoded ? Encode(bytes[i]) : Decode(bytes[i]);
+                bytes[i] = _streamEncoded ? Encode(buffer[i]) : Decode(buffer[i]);
             return _rawStream.WriteAsync(bytes, 0, count - offset, cancellationToken);
         }
 
