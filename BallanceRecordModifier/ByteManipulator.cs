@@ -4,6 +4,10 @@ using System.Threading.Tasks;
 
 namespace BallanceRecordModifier
 {
+    /// <summary>
+    /// The ByteManipulator.
+    /// Contains all methods to encode and decode files, read data from raw bytes array, etc.
+    /// </summary>
     public class ByteManipulator
     {
         public byte[] Array { get; }

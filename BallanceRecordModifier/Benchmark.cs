@@ -1,22 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using BenchmarkDotNet.Attributes;
 using Newtonsoft.Json;
 
 namespace BallanceRecordModifier
 {
-    //[MemoryDiagnoser]
-    class Program
+    [MemoryDiagnoser]
+    public class Benchmark
     {
-        //[Benchmark]
-        static async Task Main(string[] args)
-        {
-            await Legacy();
-            
-        }
-
-        private static async Task Legacy()
+        [Benchmark]
+        public async Task Benchmarking()
         {
             var arr = await File.ReadAllBytesAsync("Database.tdb");
             var bm = await ByteManipulator.Create(arr);
@@ -49,45 +44,12 @@ namespace BallanceRecordModifier
                 await using (var stream = new FileStream("Database.frankenstein.tdb", i == 0 ? FileMode.Truncate : FileMode.Append))
                 {
                     var byteArray = await vaList[i].ToByteArray();
-                    stream.Write(byteArray, 0, byteArray.Length);
+                    stream.Write(ByteManipulator.Encode(byteArray), 0, byteArray.Length);
                 }
                 Console.Write($"\r{i + 1}/{vaList.Count} arrays written.");
             }
             Console.WriteLine();
             Console.WriteLine($"Write Completed.");
-            // BenchmarkRunner.Run<Benchmark>();
-        }
-
-        private static async Task StreamBasedConcurrencyProcess()
-        {
-            var virtoolsArrayTasks = new List<Task<VirtoolsArray>>();
-
-            await using var fileStream = new FileStream("Database.tdb", FileMode.Open);
-            var tdbStream = new TdbStream(false, true, fileStream);
-            using var tdbReader = new TdbReader(tdbStream);
-            while (true)
-            {
-                var sheetName = tdbReader.ReadString();
-                Console.WriteLine(sheetName);
-                var chunkSize = tdbReader.ReadInt32();
-                Console.WriteLine($"chunkSize: {chunkSize}");
-            
-                byte[] buffer = new byte[chunkSize];
-            
-                tdbStream.ReadAsEncoded = true;
-                tdbReader.Read(buffer);
-                tdbStream.ReadAsEncoded = false;
-                var cellStream = new TdbStream(false, true, buffer);
-            
-                Task.Run(() =>
-                {
-                    using var cellReader = new TdbReader(cellStream);
-                    Console.WriteLine(cellReader.ReadInt32());
-                    Console.WriteLine(cellReader.ReadInt32());
-            
-                    Console.WriteLine(tdbReader.ReadString());
-                });
-            }
         }
     }
 }
