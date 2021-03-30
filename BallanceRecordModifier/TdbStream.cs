@@ -120,7 +120,6 @@ namespace BallanceRecordModifier
         }
 
         public override void Write(ReadOnlySpan<byte> buffer)
-            // => _rawStream.Write(buffer);
         {
             if (_streamEncoded == WriteAsEncoded)
             {
@@ -146,7 +145,6 @@ namespace BallanceRecordModifier
             => _rawStream.BeginRead(buffer, offset, count, callback, state);
 
         public override void CopyTo(Stream destination, int bufferSize)
-            // => _rawStream.CopyTo(destination, bufferSize);
         {
             if (destination is TdbStream stream)
                 stream.WriteAsEncoded = _streamEncoded;
@@ -160,11 +158,6 @@ namespace BallanceRecordModifier
         public override Task FlushAsync(CancellationToken cancellationToken) =>
             _rawStream.FlushAsync(cancellationToken);
 
-        // public new Task<int> ReadAsync(byte[] buffer, int offset, int count)
-        // {
-        //     return ReadAsync(buffer, offset, count, CancellationToken.None);
-        // }
-        
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (_streamEncoded == ReadAsEncoded)
@@ -215,7 +208,6 @@ namespace BallanceRecordModifier
         }
 
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-            // => _rawStream.WriteAsync(buffer, offset, count, cancellationToken);
         {
             if (count == 0)
                 return Task.CompletedTask;
@@ -232,7 +224,6 @@ namespace BallanceRecordModifier
 
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer,
             CancellationToken cancellationToken = new CancellationToken())
-            // => _rawStream.WriteAsync(buffer, cancellationToken);
         {
             if (_streamEncoded == WriteAsEncoded)
                 return _rawStream.WriteAsync(buffer, cancellationToken);
@@ -253,8 +244,6 @@ namespace BallanceRecordModifier
             }
 
             value = _streamEncoded ? Encode(value) : Decode(value);
-            // byte[] bytes = {value};
-            // bytes[0] = Encode(value);
             _rawStream.WriteByte(value);
         }
 
