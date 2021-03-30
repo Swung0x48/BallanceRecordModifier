@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BallanceRecordModifier", "B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BallanceRecordModifier.UnitTest", "BallanceRecordModifier.UnitTest\BallanceRecordModifier.UnitTest.csproj", "{60026359-34FF-4F7C-8514-CAECE240FC75}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParallelCompletion", "parallelcompletion\ParallelCompletion\ParallelCompletion.csproj", "{D7919E62-7D9B-452A-B57F-B9DEA5413624}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{60026359-34FF-4F7C-8514-CAECE240FC75}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{60026359-34FF-4F7C-8514-CAECE240FC75}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{60026359-34FF-4F7C-8514-CAECE240FC75}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7919E62-7D9B-452A-B57F-B9DEA5413624}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7919E62-7D9B-452A-B57F-B9DEA5413624}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7919E62-7D9B-452A-B57F-B9DEA5413624}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7919E62-7D9B-452A-B57F-B9DEA5413624}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
