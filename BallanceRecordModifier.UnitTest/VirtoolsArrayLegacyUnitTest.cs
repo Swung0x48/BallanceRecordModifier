@@ -4,7 +4,7 @@ using Xunit;
 
 namespace BallanceRecordModifier.UnitTest
 {
-    public class VirtoolsArrayUnitTest
+    public class VirtoolsArrayLegacyUnitTest
     {
         [Theory]
         [InlineData(
@@ -13,10 +13,12 @@ namespace BallanceRecordModifier.UnitTest
         public async Task TestCreateHighScoreArray(string sample)
         {
             var sampleBytes = Convert.FromBase64String(sample);
-            var tdbStream = new TdbStream(false, true, sampleBytes);
+            var bm = await ByteManipulator.Create(sampleBytes);
 
-            var virtoolsArray = await VirtoolsArray.Read(tdbStream);
-            Assert.Equal("DB_Highscore_Lv01", virtoolsArray.SheetName);
+            var va = await VirtoolsArrayLegacy.Create(bm);
+            await va.SetHeader(bm);
+            await va.PopulateCells(bm);
+            Assert.Equal("DB_Highscore_Lv01", va.SheetName);
         }
 
         [Theory]

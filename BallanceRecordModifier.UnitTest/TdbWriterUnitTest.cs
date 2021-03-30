@@ -10,7 +10,7 @@ namespace BallanceRecordModifier.UnitTest
         public void TestException()
         {
             var tdbStream = new TdbStream(false, true);
-            Assert.Throws<ArgumentException>(() => new TdbWriter(tdbStream));
+            Assert.Throws<InvalidOperationException>(() => new TdbWriter(tdbStream));
         }
 
         [Theory]

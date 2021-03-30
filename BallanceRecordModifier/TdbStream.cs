@@ -33,9 +33,9 @@ namespace BallanceRecordModifier
             return a;
         }
         
-        public TdbStream(bool readAsEncoded, bool writeAsEncoded, Stream rawStream)
+        public TdbStream(bool readAsEncoded, bool writeAsEncoded, Stream? rawStream)
         {
-            _rawStream = rawStream;
+            _rawStream = rawStream ?? new MemoryStream();
             ReadAsEncoded = readAsEncoded;
             WriteAsEncoded = writeAsEncoded;
             _streamEncoded = writeAsEncoded;

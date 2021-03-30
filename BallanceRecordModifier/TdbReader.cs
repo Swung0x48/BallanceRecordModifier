@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text;
 
@@ -5,8 +6,12 @@ namespace BallanceRecordModifier
 {
     public class TdbReader: BinaryReader
     {
-        public TdbReader(Stream input) : base(input)
+        public TdbReader(TdbStream input) : base(input)
         {
+            if (input.ReadAsEncoded)
+                throw new InvalidOperationException(
+                    $"{nameof(input)} should set WriteAsEncoded to false before using this writer.");
+
         }
 
         public override string ReadString()
