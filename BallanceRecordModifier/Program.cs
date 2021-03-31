@@ -12,8 +12,44 @@ namespace BallanceRecordModifier
         //[Benchmark]
         static async Task Main(string[] args)
         {
-            await Legacy();
-            
+            await using var fs = File.Open("Database.tdb", FileMode.Open, FileAccess.Read);
+            var tdbStream = new TdbStream(false, true, fs);
+            var tdbReader = new TdbReader(tdbStream);
+
+            var virtoolsArrays = new List<VirtoolsArray>();
+            var chunks = new List<byte[]>();
+            var tasks = new List<Task>();
+
+            try
+            {
+                for (var i = 1; i < 2; i++)
+                {
+                    if (tdbStream.Position == tdbStream.Length)
+                        throw new EndOfStreamException();
+                    var virtoolsArray = await VirtoolsArray.CreateAsync(tdbReader, false);
+                    // await Task.Run(() => Console.WriteLine($"Creating array #{i}: {virtoolsArrays[i - 1].SheetName}"));
+                    virtoolsArrays.Add(virtoolsArray);
+                    var chunk = new byte[virtoolsArray.ChunkSize];
+                    await tdbStream.ReadAsync(chunk);
+                    tasks.Add(virtoolsArray.PopulateAsync(chunk));
+                    await Task.Run(() => Console.WriteLine($"Populating array #{i}: {virtoolsArrays[i - 1].SheetName}"));
+                }
+            }
+            catch (EndOfStreamException e)
+            {
+                // Console.WriteLine(e);
+            }
+            Task.WaitAll(tasks.ToArray());
+            virtoolsArrays.ForEach(e =>
+            {
+                string json = JsonConvert.SerializeObject(e, Formatting.Indented);
+                Console.WriteLine(json);
+            });
+            // tasks.ForEach(e =>
+            // {
+            //     e.Wait();
+            //     
+            // });
         }
 
         private static async Task Legacy()
