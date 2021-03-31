@@ -147,9 +147,14 @@ namespace BallanceRecordModifier
         public override void CopyTo(Stream destination, int bufferSize)
         {
             if (destination is TdbStream stream)
+            {
                 stream.WriteAsEncoded = _streamEncoded;
-            
-            _rawStream.CopyTo(destination, bufferSize);
+                _rawStream.CopyTo(destination, bufferSize);
+            }
+
+            var buffer = new byte[bufferSize];
+            Read(buffer);
+            destination.Write(buffer);
         }
         public override ValueTask DisposeAsync() => _rawStream.DisposeAsync();
         public override int EndRead(IAsyncResult asyncResult) => _rawStream.EndRead(asyncResult);
@@ -255,9 +260,10 @@ namespace BallanceRecordModifier
 
         public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
         {
-            if (destination is TdbStream stream)
-                stream.WriteAsEncoded = _streamEncoded;
-                
+            if (destination is not TdbStream stream)
+                return Task.Run(() => CopyTo(destination, bufferSize), cancellationToken);
+            
+            stream.WriteAsEncoded = _streamEncoded;
             return _rawStream.CopyToAsync(destination, bufferSize, cancellationToken);
         }
     }

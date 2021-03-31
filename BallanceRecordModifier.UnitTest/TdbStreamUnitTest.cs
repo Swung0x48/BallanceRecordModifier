@@ -55,7 +55,7 @@ namespace BallanceRecordModifier.UnitTest
             Assert.Equal(decoded[1], tdbStream.ReadByte());
             
             var rand = new Random();
-            var randIndex = rand.Next(0, encodedBytes.Length - 1 - 1); // Make sure next read will read something, aka. Read() will not spitting out -1.
+            var randIndex = rand.Next(0, encodedBytes.Length - 1 - 1); // Make sure next read will read something, aka. ReadAsync() will not spitting out -1.
             tdbStream.Seek(randIndex, SeekOrigin.Begin);
             Assert.Equal(decoded[randIndex], tdbStream.ReadByte());
 
