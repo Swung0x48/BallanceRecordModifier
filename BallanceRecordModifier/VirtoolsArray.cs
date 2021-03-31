@@ -34,8 +34,8 @@ namespace BallanceRecordModifier
         public int ColumnCount { get; private set; }
         public int RowCount { get; private set; }
 
-        public List<Tuple<string, FieldType>> Headers { get; private set; }
-        public object[,] Cells { get; set; }
+        public List<Tuple<string, FieldType>> Headers { get; private set; } = null!;
+        public object[,] Cells { get; set; } = null!;
 
         private VirtoolsArray(string sheetName, int chunkSize)
         {
@@ -43,20 +43,12 @@ namespace BallanceRecordModifier
             _chunkSize = chunkSize;
         }
 
-        private static async Task<VirtoolsArray> ReadMetadata(TdbStream tdbStream)
-            => await Task.Run(() =>
-            {
-                tdbStream.ReadAsEncoded = false;
-                var tdbReader = new TdbReader(tdbStream);
-                return new VirtoolsArray(tdbReader.ReadString(), tdbReader.ReadInt32());
-            });
+        private static Task<VirtoolsArray> ReadMetadataAsync(BinaryReader tdbReader)
+            => Task.Run(() => 
+                new VirtoolsArray(tdbReader.ReadString(), tdbReader.ReadInt32()));
 
-            private async Task DetermineSize(TdbStream tdbStream)
-            => await Task.Run(() =>
-            {
-                tdbStream.ReadAsEncoded = false;
-                var tdbReader = new TdbReader(tdbStream);
-                
+        private Task DetermineSizeAsync(BinaryReader tdbReader)
+            => Task.Run(() => {
                 ColumnCount = tdbReader.ReadInt32();
                 RowCount = tdbReader.ReadInt32();
                 Headers = new List<Tuple<string, FieldType>>(ColumnCount);
@@ -65,11 +57,8 @@ namespace BallanceRecordModifier
                 tdbReader.ReadInt32(); // Skip EOF byte (-1 / 0x FFFF FFFF).
             });
 
-        private async Task SetHeader(TdbStream tdbStream)
-            => await Task.Run(() =>
-            {
-                tdbStream.ReadAsEncoded = false;
-                var tdbReader = new TdbReader(tdbStream);
+        private Task SetHeaderAsync(BinaryReader tdbReader)
+            => Task.Run(() => {
                 for (var i = 0; i < ColumnCount; i++)
                 {
                     var headerName = tdbReader.ReadString();
@@ -79,11 +68,8 @@ namespace BallanceRecordModifier
                 }
             });
 
-        private async Task PopulateCells(TdbStream tdbStream)
-            => await Task.Run(() => {
-                tdbStream.ReadAsEncoded = false;
-                var tdbReader = new TdbReader(tdbStream);
-
+        public Task PopulateCellsAsync(BinaryReader tdbReader)
+            => Task.Run(() => {
                 for (var i = 0; i < ColumnCount; i++)
                 {
                     for (var j = 0; j < RowCount; j++)
@@ -99,31 +85,31 @@ namespace BallanceRecordModifier
                 }
             });
 
-        public static async Task<VirtoolsArray> Read(TdbStream tdbStream)
+        public static async Task<VirtoolsArray> CreateAsync(TdbReader tdbReader, bool populateCells)
         {
-            var ret = await ReadMetadata(tdbStream);
-            await ret.DetermineSize(tdbStream);
-            await ret.SetHeader(tdbStream);
-            await ret.PopulateCells(tdbStream);
+            var ret = await ReadMetadataAsync(tdbReader);
+            await ret.DetermineSizeAsync(tdbReader);
+            await ret.SetHeaderAsync(tdbReader);
+            if (populateCells)
+                await ret.PopulateCellsAsync(tdbReader);
             return ret;
         }
     
-        public async Task<TdbStream> ToStream(Stream? stream)
-            => await Task.Run(() =>
-            {
+        public Task<long> WriteToStreamAsync(Stream? stream)
+            => Task.Run(() => {
                 if (stream is not null && !stream.CanSeek)
                     throw new NotSupportedException("Cannot write to a not seekable stream");
-                var tdbStream = new TdbStream(false, true, stream);
-                using var tdbWriter = new TdbWriter(tdbStream);
+                TdbStream tdbStream = stream is not TdbStream ? 
+                    new TdbStream(true, false, stream) : 
+                    (TdbStream) stream;
+
+                var arrayBeginPosition = tdbStream.Position;
+                var tdbWriter = new TdbWriter(tdbStream);
                 tdbWriter.Write(SheetName);
                 var chunkSizePosition = tdbStream.Position;
                 tdbWriter.Write(0);    // Write a padding for chunk size
                 var chunkBegin = tdbStream.Position;
                 
-                // var tmp = new List<byte>();
-                // tmp.AddRange(BitConverter.GetBytes(ColumnCount));
-                // tmp.AddRange(BitConverter.GetBytes(RowCount));
-                // tmp.AddRange(BitConverter.GetBytes(-1));    // Write padding.
                 tdbWriter.Write(ColumnCount);
                 tdbWriter.Write(RowCount);
                 tdbWriter.Write(-1);    // Write padding.
@@ -132,8 +118,6 @@ namespace BallanceRecordModifier
                 {
                     tdbWriter.Write(item1); // Write header name.
                     tdbWriter.Write((int) item2);   // Write header type.
-                    // tmp.AddRange(Encoding.ASCII.GetBytes(item1 + '\0')); // Write header name.
-                    // tmp.AddRange(BitConverter.GetBytes((int) item2));       // Write header type.
                 }
                 
                 for (var i = 0; i < ColumnCount; i++)
@@ -142,25 +126,32 @@ namespace BallanceRecordModifier
                     {
                         switch (Headers[i].Item2)
                         {
-                            // case FieldType.Int32: tmp.AddRange(BitConverter.GetBytes((int) Cells[i, j])); break;
-                            // case FieldType.Float: tmp.AddRange(BitConverter.GetBytes((float) Cells[i, j])); break;
-                            // case FieldType.String: tmp.AddRange(Encoding.ASCII.GetBytes((string) Cells[i, j] + '\0')); break;
                             case FieldType.Int32: tdbWriter.Write((int) Cells[i, j]); break;
                             case FieldType.Float: tdbWriter.Write((float) Cells[i, j]); break;
                             case FieldType.String: tdbWriter.Write((string) Cells[i, j]); break;
                             default:
-                                throw new ArgumentOutOfRangeException();
+                                throw new InvalidOperationException($"Cannot cast {Headers[i].Item2} to a type.");
                         }
                     }
                 }
 
-                _chunkSize = (int) (tdbStream.Position - chunkBegin);
+                var arrayEndPosition = tdbStream.Position;
+                _chunkSize = (int) (arrayEndPosition - chunkBegin);
                 tdbStream.Position = chunkSizePosition;
                 tdbWriter.Write(_chunkSize);
-                // ret.AddRange(BitConverter.GetBytes(_chunkSize)); // Write chunk size.
-                // ret.AddRange(tmp); // Write the rest (headers and cells).
-
-                return tdbStream;
+                tdbStream.Position = arrayEndPosition;
+                return arrayEndPosition - arrayBeginPosition;
+            });
+        
+        public async Task<byte[]> ToArray()
+            => await Task.Run(async () =>
+            {
+                var tdbStream = new TdbStream(true, false);
+                var arraySize = await WriteToStreamAsync(tdbStream);
+                tdbStream.Seek(-arraySize, SeekOrigin.Current); // Seek to beginning of the array
+                var ret = new byte[arraySize];
+                await tdbStream.ReadAsync(ret.AsMemory(0, (int) arraySize));
+                return ret;
             });
     
 

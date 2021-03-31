@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -14,8 +15,14 @@ namespace BallanceRecordModifier.UnitTest
         {
             var sampleBytes = Convert.FromBase64String(sample);
             var tdbStream = new TdbStream(false, true, sampleBytes);
+            using var tdbReader = new TdbReader(tdbStream);
 
-            var virtoolsArray = await VirtoolsArray.Read(tdbStream);
+            var virtoolsArray = await VirtoolsArray.CreateAsync(tdbReader, true);
+            Assert.Equal("DB_Highscore_Lv01", virtoolsArray.SheetName);
+
+            tdbStream.Position = 0;
+            virtoolsArray = await VirtoolsArray.CreateAsync(tdbReader, false);
+            await virtoolsArray.PopulateCellsAsync(tdbReader);
             Assert.Equal("DB_Highscore_Lv01", virtoolsArray.SheetName);
         }
 
@@ -26,13 +33,10 @@ namespace BallanceRecordModifier.UnitTest
         public async Task TestCreateArrayOnExhausted(string sample)
         {
             var sampleBytes = Convert.FromBase64String(sample);
-            var bm = await ByteManipulator.Create(sampleBytes);
-
-            var va = await VirtoolsArrayLegacy.Create(bm);
-            await va.SetHeader(bm);
-            await va.PopulateCells(bm);
-
-            await Assert.ThrowsAsync<InvalidOperationException>(() => VirtoolsArrayLegacy.Create(bm));
+            var tdbStream = new TdbStream(false, true, sampleBytes);
+            using var tdbReader = new TdbReader(tdbStream);
+            var va = await VirtoolsArray.CreateAsync(tdbReader, true);
+            await Assert.ThrowsAsync<EndOfStreamException>(async () => await va.PopulateCellsAsync(tdbReader));
         }
 
         [Theory]
@@ -55,10 +59,9 @@ namespace BallanceRecordModifier.UnitTest
         public async Task TestCreateDB_Options(string sample)
         {
             var sampleBytes = Convert.FromBase64String(sample);
-            var bm = await ByteManipulator.Create(sampleBytes);
-            var va = await VirtoolsArrayLegacy.Create(bm);
-            await va.SetHeader(bm);
-            await va.PopulateCells(bm);
+            await using var tdbStream = new TdbStream(false,true, sampleBytes);
+            using var tdbReader = new TdbReader(tdbStream);
+            var va = await VirtoolsArray.CreateAsync(tdbReader, true);
             Assert.Equal("DB_Options", va.SheetName);
             Assert.Equal(0.7f, va.Cells[0, 0]);
         }
@@ -70,19 +73,18 @@ namespace BallanceRecordModifier.UnitTest
         public async Task TestToArray(string sample)
         {
             var sampleBytes = Convert.FromBase64String(sample);
-            var bm = await ByteManipulator.Create(sampleBytes);
-            var va = await VirtoolsArrayLegacy.Create(bm);
-            await va.SetHeader(bm);
-            await va.PopulateCells(bm);
-            Assert.Equal(sampleBytes, await va.ToByteArray());
+            var tdbStream = new TdbStream(false, true, sampleBytes);
+            var tdbReader = new TdbReader(tdbStream);
+            var va = await VirtoolsArray.CreateAsync(tdbReader, true);
+            Assert.Equal(sampleBytes, await va.ToArray());
         }
 
         [Theory]
         [InlineData("1", 0)]
         public void TestKeyConversions(string key, int index)
         {
-            Assert.Equal(key, VirtoolsArrayLegacy.ConvertIndexToKey(index));
-            Assert.Equal(index, VirtoolsArrayLegacy.ConvertKeyToIndex(key));
+            Assert.Equal(key, VirtoolsArray.ConvertIndexToKey(index));
+            Assert.Equal(index, VirtoolsArray.ConvertKeyToIndex(key));
         }
     }
 }
