@@ -22,7 +22,10 @@ namespace BallanceRecordModifier.UnitTest
 
             tdbStream.Position = 0;
             virtoolsArray = await VirtoolsArray.CreateAsync(tdbReader, false);
-            await virtoolsArray.PopulateCellsAsync(tdbReader);
+            byte[] buffer = new byte[virtoolsArray.ChunkSize];
+            tdbStream.Read(buffer);
+            var task = virtoolsArray.PopulateAsync(buffer);
+            task.Wait();
             Assert.Equal("DB_Highscore_Lv01", virtoolsArray.SheetName);
         }
 
@@ -34,9 +37,17 @@ namespace BallanceRecordModifier.UnitTest
         {
             var sampleBytes = Convert.FromBase64String(sample);
             var tdbStream = new TdbStream(false, true, sampleBytes);
-            using var tdbReader = new TdbReader(tdbStream);
+            var tdbReader = new TdbReader(tdbStream);
             var va = await VirtoolsArray.CreateAsync(tdbReader, true);
-            await Assert.ThrowsAsync<EndOfStreamException>(async () => await va.PopulateCellsAsync(tdbReader));
+            await Assert.ThrowsAsync<EndOfStreamException>(async () =>
+            {
+                if (tdbStream.Position == tdbStream.Length)
+                    throw new EndOfStreamException();
+                var buffer = new byte[va.ChunkSize];
+                await tdbStream.ReadAsync(buffer);
+                // tdbStream.Read(buffer);
+                await va.PopulateAsync(buffer);
+            });
         }
 
         [Theory]
@@ -45,10 +56,9 @@ namespace BallanceRecordModifier.UnitTest
         public async Task TestCreateDB_Levelfreischaltung(string sample)
         {
             var sampleBytes = Convert.FromBase64String(sample);
-            var bm = await ByteManipulator.Create(ByteManipulator.Encode(sampleBytes));
-            var va = await VirtoolsArrayLegacy.Create(bm);
-            await va.SetHeader(bm);
-            await va.PopulateCells(bm);
+            await using var tdbStream = new TdbStream(false,false, sampleBytes);
+            using var tdbReader = new TdbReader(tdbStream);
+            var va = await VirtoolsArray.CreateAsync(tdbReader, true);
             Assert.Equal("DB_Levelfreischaltung", va.SheetName);
         }
 
@@ -76,7 +86,7 @@ namespace BallanceRecordModifier.UnitTest
             var tdbStream = new TdbStream(false, true, sampleBytes);
             var tdbReader = new TdbReader(tdbStream);
             var va = await VirtoolsArray.CreateAsync(tdbReader, true);
-            Assert.Equal(sampleBytes, await va.ToArray());
+            Assert.Equal(sampleBytes, await va.ToArrayAsync());
         }
 
         [Theory]

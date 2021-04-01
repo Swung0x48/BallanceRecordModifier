@@ -30,7 +30,7 @@ namespace BallanceRecordModifier
         #endregion
 
         public string SheetName { get; set; }
-        private int _chunkSize;
+        public int ChunkSize { get; private set; }
         public int ColumnCount { get; private set; }
         public int RowCount { get; private set; }
 
@@ -40,7 +40,7 @@ namespace BallanceRecordModifier
         private VirtoolsArray(string sheetName, int chunkSize)
         {
             SheetName = sheetName;
-            _chunkSize = chunkSize;
+            ChunkSize = chunkSize;
         }
 
         private static Task<VirtoolsArray> ReadMetadataAsync(BinaryReader tdbReader)
@@ -68,8 +68,15 @@ namespace BallanceRecordModifier
                 }
             });
 
-        public Task PopulateCellsAsync(BinaryReader tdbReader)
-            => Task.Run(() => {
+        public async Task PopulateAsync(ReadOnlyMemory<byte> chunk)
+            => await Task.Run(async () =>
+            {
+                // var buffer = new byte[chunk.Length];
+                // chunk.CopyTo(buffer, 0);
+                var tdbStream = new TdbStream(false, false, chunk.Span.ToArray());
+                var tdbReader = new TdbReader(tdbStream);
+                await DetermineSizeAsync(tdbReader);
+                await SetHeaderAsync(tdbReader);
                 for (var i = 0; i < ColumnCount; i++)
                 {
                     for (var j = 0; j < RowCount; j++)
@@ -85,13 +92,15 @@ namespace BallanceRecordModifier
                 }
             });
 
-        public static async Task<VirtoolsArray> CreateAsync(TdbReader tdbReader, bool populateCells)
+        public static async Task<VirtoolsArray> CreateAsync(TdbReader tdbReader, bool populate)
         {
             var ret = await ReadMetadataAsync(tdbReader);
-            await ret.DetermineSizeAsync(tdbReader);
-            await ret.SetHeaderAsync(tdbReader);
-            if (populateCells)
-                await ret.PopulateCellsAsync(tdbReader);
+            if (!populate) return ret;
+            
+            var buffer = new byte[ret.ChunkSize];
+            tdbReader.Read(buffer);
+            await ret.PopulateAsync(buffer);
+
             return ret;
         }
     
@@ -136,19 +145,19 @@ namespace BallanceRecordModifier
                 }
 
                 var arrayEndPosition = tdbStream.Position;
-                _chunkSize = (int) (arrayEndPosition - chunkBegin);
+                ChunkSize = (int) (arrayEndPosition - chunkBegin);
                 tdbStream.Position = chunkSizePosition;
-                tdbWriter.Write(_chunkSize);
+                tdbWriter.Write(ChunkSize);
                 tdbStream.Position = arrayEndPosition;
                 return arrayEndPosition - arrayBeginPosition;
             });
         
-        public async Task<byte[]> ToArray()
+        public async Task<byte[]> ToArrayAsync()
             => await Task.Run(async () =>
             {
                 var tdbStream = new TdbStream(true, false);
                 var arraySize = await WriteToStreamAsync(tdbStream);
-                tdbStream.Seek(-arraySize, SeekOrigin.Current); // Seek to beginning of the array
+                tdbStream.Seek(-arraySize, SeekOrigin.Current); // Seek to beginning of the chunk of this array
                 var ret = new byte[arraySize];
                 await tdbStream.ReadAsync(ret.AsMemory(0, (int) arraySize));
                 return ret;
