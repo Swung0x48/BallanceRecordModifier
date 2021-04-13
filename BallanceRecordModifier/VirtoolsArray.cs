@@ -102,7 +102,37 @@ namespace BallanceRecordModifier
 
             return ret;
         }
-    
+
+        public static async Task<List<VirtoolsArray>> CreateListAsync(Stream stream)
+        {
+            var tdbStream = new TdbStream(false, true, stream);
+            var tdbReader = new TdbReader(tdbStream);
+
+            var ret = new List<VirtoolsArray>();
+            var populateTasks = new List<Task>();
+
+            try
+            {
+                for (var i = 1; ; i++)
+                {
+                    if (tdbStream.Position == tdbStream.Length)
+                        throw new EndOfStreamException();
+                    var virtoolsArray = await CreateAsync(tdbReader, false);
+                    ret.Add(virtoolsArray);
+                    var chunk = new byte[virtoolsArray.ChunkSize];
+
+                    tdbStream.Read(chunk);
+
+                    var memory = new ReadOnlyMemory<byte>(chunk);
+                    populateTasks.Add(virtoolsArray.PopulateAsync(memory));
+                }
+            }
+            catch (EndOfStreamException) {}
+
+            Task.WaitAll(populateTasks.ToArray());
+            return ret;
+        }
+
         public Task<long> WriteToStreamAsync(Stream? stream)
             => Task.Run(() => {
                 if (stream is not null && !stream.CanSeek)

@@ -75,6 +75,19 @@ namespace BallanceRecordModifier.UnitTest
             Assert.Equal("DB_Options", va.SheetName);
             Assert.Equal(0.7f, va.Cells[0, 0]);
         }
+        
+        [Theory]
+        [InlineData(
+            "YiLBw+dkB8enRPUU9fX1S/X19Qr19fXV1dXVoMdnhIeG9Sr19fVABadG5ulkx+lARiSGhqfN9Qr19fVDhgXposckxAYkZvUK9fX1Q4YF6SIGRkfEBiRm9Qr19fVDhgXpY4amZPUK9fX1Q4YF6SAHxuZk9Qr19fVDhgXpIMdkBmSG6UIGh/UK9fX1Q4YF6WMHpmTpQgaH9Qr19fUDp6SGJGTpQgaH6SDHZAZkB8enzfUK9fX1YwZEZONnBgWGJPVK9fX1QmfHhGZjBgWGJM31CvX19UxMTM319fX1YvX19YL19fWi9fX1wvX19c719fWM9fX19fX19acGh4b19fX19Q=="
+        )]
+        public async Task TestCreateDB_OptionsWithCreateList(string sample)
+        {
+            var sampleBytes = Convert.FromBase64String(sample);
+            var ms = new MemoryStream(sampleBytes);
+            var list = await VirtoolsArray.CreateListAsync(ms);
+            Assert.Equal("DB_Options", list[0].SheetName);
+            Assert.Equal(0.7f, list[0].Cells[0, 0]);
+        }
 
         [Theory]
         [InlineData(
