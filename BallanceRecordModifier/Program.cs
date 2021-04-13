@@ -16,7 +16,7 @@ namespace BallanceRecordModifier
         static async Task Main(string[] args)
         {
              var benchmark = new Benchmark();
-             // await benchmark.LegacyMethod();
+             await benchmark.LegacyMethod();
              await benchmark.NewMethod();
         }
 #endif

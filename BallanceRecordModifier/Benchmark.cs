@@ -14,7 +14,7 @@ namespace BallanceRecordModifier
         private static string _basePath =
             "/Users/swung0x48/RiderProjects/BallanceRecordModifier/BallanceRecordModifier/bin/Debug/net5.0";
         private static string _pathToInputFile =
-            _basePath + "/Database.10000xEnlarged.tdb";
+            _basePath + "/Database.tdb";
         private static string _pathToOutputFile =
             _basePath + "/Database.out.tdb";
         

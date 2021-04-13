@@ -10,7 +10,7 @@ namespace BallanceRecordModifier
         {
             if (input.ReadAsEncoded)
                 throw new InvalidOperationException(
-                    $"{nameof(input)} should set WriteAsEncoded to false before using this writer.");
+                    $"{nameof(input)} should set ReadAsEncoded to false before using this writer.");
 
         }
 
